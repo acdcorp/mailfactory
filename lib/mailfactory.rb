@@ -48,7 +48,7 @@ end
 # An easy class for creating a mail message
 class MailFactory
 
-  VERSION = '1.4.0'
+  VERSION = '1.4.1'
   
   def initialize()
     @headers = Array.new()
@@ -278,13 +278,17 @@ class MailFactory
 
     if(type != nil)
       attachment['mimetype'] = type.to_s()
+    elsif(file['\n'])
+      attachment['mimetype'] = MIME::Types.type_for(emailfilename).to_s
     elsif(file.kind_of?(String) or file.kind_of?(Pathname))
       attachment['mimetype'] = MIME::Types.type_for(file.to_s()).to_s
     else
       attachment['mimetype'] = ''
     end
     
-    if(file.kind_of?(String) or file.kind_of?(Pathname))    
+    if(file['\n'])
+      attachment['attachment'] = file_encode(file)
+    elsif(file.kind_of?(String) or file.kind_of?(Pathname))    
       # Open in rb mode to handle Windows, which mangles binary files opened in a text mode
       File.open(file.to_s(), "rb") { |fp|
         attachment['attachment'] = file_encode(fp.read())
