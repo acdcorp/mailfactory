@@ -49,7 +49,7 @@ end
 class MailFactory
 
   VERSION = '1.4.1'
-  
+
   def initialize()
     @headers = Array.new()
     @attachments = Array.new()
@@ -59,16 +59,16 @@ class MailFactory
     @text = nil
     @charset = 'utf-8'
   end
-  
-  
+
+
   # adds a header to the bottom of the headers
   def add_header(header, value)
     value = quoted_printable_with_instruction(value, @charset) if header == 'subject'
     value = quote_address_if_necessary(value, @charset) if %w[from to cc bcc reply-to].include?(header.downcase)
     @headers << "#{header}: #{value}"
   end
-  
-  
+
+
   # removes the named header - case insensitive
   def remove_header(header)
     @headers.each_index() { |i|
@@ -77,64 +77,64 @@ class MailFactory
       end
     }
   end
-  
-  
+
+
   # sets a header (removing any other versions of that header)
   def set_header(header, value)
     remove_header(header)
     add_header(header, value)
   end
-  
-  
+
+
   def replyto=(newreplyto)
     remove_header("Reply-To")
     add_header("Reply-To", newreplyto)
   end
-  
-  
+
+
   def replyto()
     return(get_header("Reply-To")[0])
   end
-  
-  
+
+
   # sets the plain text body of the message
   def text=(newtext)
     @text = newtext
   end
-  
-  
+
+
   # sets the HTML body of the message. Only the body of the
   # html should be provided
   def html=(newhtml)
     @html = "<html>\n<head>\n<meta content=\"text/html;charset=#{@charset}\" http-equiv=\"Content-Type\">\n</head>\n<body bgcolor=\"#ffffff\" text=\"#000000\">\n#{newhtml}\n</body>\n</html>"
   end
-  
-  
+
+
   # sets the HTML body of the message.  The entire HTML section should be provided
   def rawhtml=(newhtml)
     @html = newhtml
   end
-  
-  
+
+
   # implement method missing to provide helper methods for setting and getting headers.
   # Headers with '-' characters may be set/gotten as 'x_mailer' or 'XMailer' (splitting
   # will occur between capital letters or on '_' chracters)
   def method_missing(methId, *args)
     name = methId.id2name()
-    
+
     # mangle the name if we have to
     if(name =~ /_/)
       name = name.gsub(/_/, '-')
     elsif(name =~ /[A-Z]/)
       name = name.gsub(/([a-zA-Z])([A-Z])/, '\1-\2')
     end
-    
+
     # determine if it sets or gets, and do the right thing
     if(name =~ /=$/)
       if(args.length != 1)
         super(methId, args)
       end
-      set_header(name[/^(.*)=$/, 1], args[0])     
+      set_header(name[/^(.*)=$/, 1], args[0])
     else
       if(args.length != 0)
         super(methId, args)
@@ -144,7 +144,7 @@ class MailFactory
     end
   end
 
-  
+
   # returns the value (or values) of the named header in an array
   def get_header(header)
     headers = Array.new()
@@ -154,11 +154,11 @@ class MailFactory
         headers << h[/^[^:]+:(.*)/i, 1].strip()
       end
     }
-    
+
     return(headers)
   end
-  
-  
+
+
   # returns true if the email is multipart
   def multipart?()
     if(@attachments.length > 0 or @html != nil)
@@ -167,7 +167,7 @@ class MailFactory
       return(false)
     end
   end
-  
+
 
   # builds an email and returns it as a string.  Takes the following options:
   # <tt>:messageid</tt>:: Adds a message id to the message based on the from header (defaults to false)
@@ -176,7 +176,7 @@ class MailFactory
     if(options[:date] == nil)
       options[:date] = true
     end
-    
+
     if(options[:messageid])
       # add a unique message-id
       remove_header("Message-ID")
@@ -195,7 +195,7 @@ class MailFactory
       if(get_header("MIME-Version").length == 0)
         add_header("MIME-Version", "1.0")
       end
-      
+
       if(get_header("Content-Type").length == 0)
         if(@attachments.length == 0)
           add_header("Content-Type", "multipart/alternative;boundary=\"#{@bodyboundary}\"")
@@ -204,17 +204,17 @@ class MailFactory
         end
       end
     end
-    
+
     return("#{headers_to_s()}#{body_to_s()}")
   end
 
-  
-  # returns a formatted email - equivalent to construct(:messageid => true) 
+
+  # returns a formatted email - equivalent to construct(:messageid => true)
   def to_s()
     return(construct(:messageid => true))
   end
-  
-  
+
+
   # generates a unique boundary string
   def generate_boundary()
     randomstring = Array.new()
@@ -234,8 +234,8 @@ class MailFactory
     }
     return("----=_NextPart_#{randomstring.join()}")
   end
-  
-  
+
+
   # adds an attachment to the mail.  Type may be given as a mime type.  If it
   # is left off and the MIME::Types module is available it will be determined automagically.
   # If the optional attachemntheaders is given, then they will be added to the attachment
@@ -248,8 +248,8 @@ class MailFactory
       attachment['mimetype'] = MIME::Types.type_for(filename).to_s
     else
       attachment['mimetype'] = type
-    end 
-    
+    end
+
     # Open in rb mode to handle Windows, which mangles binary files opened in a text mode
     File.open(filename, "rb") { |fp|
       attachment['attachment'] = file_encode(fp.read())
@@ -264,8 +264,8 @@ class MailFactory
 
     @attachments << attachment
   end
-  
-  
+
+
   # adds an attachment to the mail as emailfilename.  Type may be given as a mime type.  If it
   # is left off and the MIME::Types module is available it will be determined automagically.
   # file may be given as an IO stream (which will be read until the end) or as a filename.
@@ -278,17 +278,17 @@ class MailFactory
 
     if(type != nil)
       attachment['mimetype'] = type.to_s()
-    elsif(file['\n'])
+    elsif(file["\n"])
       attachment['mimetype'] = MIME::Types.type_for(emailfilename).to_s
     elsif(file.kind_of?(String) or file.kind_of?(Pathname))
       attachment['mimetype'] = MIME::Types.type_for(file.to_s()).to_s
     else
       attachment['mimetype'] = ''
     end
-    
-    if(file['\n'])
+
+    if(file["\n"])
       attachment['attachment'] = file_encode(file)
-    elsif(file.kind_of?(String) or file.kind_of?(Pathname))    
+    elsif(file.kind_of?(String) or file.kind_of?(Pathname))
       # Open in rb mode to handle Windows, which mangles binary files opened in a text mode
       File.open(file.to_s(), "rb") { |fp|
         attachment['attachment'] = file_encode(fp.read())
@@ -298,50 +298,50 @@ class MailFactory
     else
       raise(Exception, "file is not a supported type (must be a String, Pathnamem, or support read method)")
     end
-    
+
     if(attachmentheaders != nil)
       if(!attachmentheaders.kind_of?(Array))
         attachmentheaders = attachmentheaders.split(/\r?\n/)
       end
       attachment['headers'] = attachmentheaders
     end
-    
+
     @attachments << attachment
   end
-  
-  
+
+
   alias attach add_attachment
   alias attach_as add_attachment_as
-  
+
 protected
-  
+
   # returns the @headers as a properly formatted string
   def headers_to_s()
     return("#{@headers.join("\r\n")}\r\n\r\n")
   end
-  
-  
+
+
   # returns the body as a properly formatted string
   def body_to_s()
     body = Array.new()
-    
+
     # simple message with one part
     if(!multipart?())
       return(@text)
     else
       body << "This is a multi-part message in MIME format.\r\n\r\n--#{@attachmentboundary}\r\nContent-Type: multipart/alternative; boundary=\"#{@bodyboundary}\""
-      
+
       if(@attachments.length > 0)
         # text part
         body << "#{buildbodyboundary("text/plain; charset=#{@charset}; format=flowed", 'quoted-printable')}\r\n\r\n#{quote_if_necessary(@text, @charset)}"
-        
+
         # html part if one is provided
         if @html
           body << "#{buildbodyboundary("text/html; charset=#{@charset}", 'quoted-printable')}\r\n\r\n#{quote_if_necessary(@html, @charset)}"
         end
-        
+
         body << "--#{@bodyboundary}--"
-        
+
         # and, the attachments
         if(@attachments.length > 0)
           @attachments.each() { |attachment|
@@ -352,18 +352,18 @@ protected
       else
         # text part
         body << "#{buildbodyboundary("text/plain; charset=#{@charset}; format=flowed", 'quoted-printable')}\r\n\r\n#{quote_if_necessary(@text, @charset)}"
-        
+
         # html part
         body << "#{buildbodyboundary("text/html; charset=#{@charset}", 'quoted-printable')}\r\n\r\n#{quote_if_necessary(@html, @charset)}"
-        
+
         body << "--#{@bodyboundary}--"
       end
-      
+
       return(body.join("\r\n\r\n"))
     end
   end
-  
-  
+
+
   # builds a boundary string for including attachments in the body, expects an attachment hash as built by
   # add_attachment and add_attachment_as
   def buildattachmentboundary(attachment)
@@ -372,11 +372,11 @@ protected
     if(attachment['headers'])
       boundary = boundary + "\r\n#{attachment['headers'].join("\r\n")}"
     end
-    
+
     return(boundary)
   end
-  
-  
+
+
   # builds a boundary string for inclusion in the body of a message
   def buildbodyboundary(type, encoding)
     return("--#{@bodyboundary}\r\nContent-Type: #{type}\r\nContent-Transfer-Encoding: #{encoding}")
@@ -394,11 +394,11 @@ protected
     #  return(collection.join("\n"))
     return(enc)
   end
-  
-  
+
+
   # Convert the given text into quoted printable format, with an instruction
   # that the text be eventually interpreted in the given charset.
-  
+
   def quoted_printable_with_instruction(text, charset)
     text = quoted_printable_encode_header(text)
     "=?#{charset}?Q?#{text}?="
@@ -411,7 +411,7 @@ protected
 
   # Convert the given character to quoted printable format
   # see http://tools.ietf.org/html/rfc2047
-  
+
   require 'enumerator' unless ''.respond_to? :enum_for
 
   def quoted_printable_encode_header(text)
@@ -465,5 +465,5 @@ protected
       address
     end
   end
-  
+
 end
